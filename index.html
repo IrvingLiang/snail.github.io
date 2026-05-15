@@ -654,62 +654,71 @@
     <script>
         // Data Structure
         let familyData = {
-            id: 'root',
-            name: '始祖',
-            gender: 'male',
-            age: 88,
-            avatar: '',
-            bio: '家族始祖',
-            children: [
-                {
-                    id: 'child1',
-                    name: '长子',
-                    gender: 'male',
-                    age: 65,
-                    avatar: '',
-                    bio: '长子',
-                    children: [
-                        {
-                            id: 'grandchild1',
-                            name: '长孙',
-                            gender: 'male',
-                            age: 40,
-                            avatar: '',
-                            bio: '长孙',
-                            children: []
-                        },
-                        {
-                            id: 'grandchild2',
-                            name: '孙女',
-                            gender: 'female',
-                            age: 35,
-                            avatar: '',
-                            bio: '孙女',
-                            children: []
-                        }
-                    ]
-                },
-                {
-                    id: 'child2',
-                    name: '次女',
-                    gender: 'female',
-                    age: 62,
-                    avatar: '',
-                    bio: '次女',
-                    children: [
-                        {
-                            id: 'grandchild3',
-                            name: '外孙',
-                            gender: 'male',
-                            age: 30,
-                            avatar: '',
-                            bio: '外孙',
-                            children: []
-                        }
-                    ]
-                }
-            ]
-        };
+  "id": "root",
+  "name": "始祖",
+  "gender": "male",
+  "age": 88,
+  "avatar": "",
+  "bio": "家族始祖",
+  "children": [
+    {
+      "id": "child1",
+      "name": "长子",
+      "gender": "male",
+      "age": 65,
+      "avatar": "",
+      "bio": "长子",
+      "children": [
+        {
+          "id": "grandchild1",
+          "name": "长孙",
+          "gender": "male",
+          "age": 40,
+          "avatar": "",
+          "bio": "长孙",
+          "children": []
+        },
+        {
+          "id": "grandchild2",
+          "name": "孙女",
+          "gender": "female",
+          "age": 35,
+          "avatar": "",
+          "bio": "孙女",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "child2",
+      "name": "次女",
+      "gender": "female",
+      "age": 62,
+      "avatar": "",
+      "bio": "次女",
+      "children": [
+        {
+          "id": "grandchild3",
+          "name": "外孙",
+          "gender": "male",
+          "age": 30,
+          "avatar": "",
+          "bio": "外孙",
+          "children": []
+        },
+        {
+          "id": "node_1778811294890_bqj9t3h1q",
+          "name": "外孙女",
+          "gender": "female",
+          "age": 22,
+          "bio": "",
+		  "avatar":"../NoFaceMan.jpg",
+          "children": []
+        }
+      ]
+    }
+  ]
+};
 
         let currentScale = 1;
         let editingNodeId = null;
