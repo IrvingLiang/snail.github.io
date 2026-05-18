@@ -653,7 +653,10 @@
 
     <script>
  let familyData = null;
-    
+ let familyData = null;
+            let currentScale = 1;
+        let editingNodeId = null;
+        let addingParentId = null;
     // 使用 IIFE 包装异步代码
     (async function() {
         try {
@@ -661,17 +664,8 @@
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             familyData = await response.json();
             console.log('数据加载成功:', familyData);
-        } catch (error) {
-            console.error('加载失败:', error);
-            familyData = { family: { name: '加载失败', members: [] } };
-        }
-    })();
-
-        let currentScale = 1;
-        let editingNodeId = null;
-        let addingParentId = null;
-
-        // Initialize
+            
+            // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             renderTree();
             updateStats();
@@ -684,6 +678,12 @@
                 if (e.target === this) closeModal();
             });
         });
+            
+        } catch (error) {
+            console.error('加载失败:', error);
+            familyData = { family: { name: '加载失败', members: [] } };
+        }
+    })();
 
         // Render Tree
         function renderTree() {
