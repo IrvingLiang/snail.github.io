@@ -661,10 +661,6 @@
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             familyData = await response.json();
             console.log('数据加载成功:', familyData);
-            
-            // 数据加载完成后，执行后续操作
-            renderPage();
-            
         } catch (error) {
             console.error('加载失败:', error);
             familyData = { family: { name: '加载失败', members: [] } };
