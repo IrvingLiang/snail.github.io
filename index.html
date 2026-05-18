@@ -35,6 +35,7 @@
             white-space: nowrap;
             min-width: fit-content;
             padding: 40px;
+            transition: transform 0.2s ease;
         }
 
         .tree ul {
@@ -100,6 +101,27 @@
             border-left: 2px solid var(--line-color);
             width: 0;
             height: 20px;
+        }
+
+        /* Loading State */
+        .loading-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--primary);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #E2E8F0;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         /* Node Card */
@@ -534,6 +556,13 @@
             animation: fadeIn 0.5s ease-out forwards;
         }
 
+        /* Error message */
+        .error-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #d32f2f;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .tree {
@@ -583,15 +612,19 @@
 
     <!-- Tree Container -->
     <div class="tree" id="treeContainer">
-        <ul id="treeRoot"></ul>
+        <div class="loading-state" id="loadingState">
+            <div class="loading-spinner"></div>
+            <p>正在加载族谱数据...</p>
+        </div>
+        <ul id="treeRoot" style="display: none;"></ul>
     </div>
 
     <!-- Controls -->
     <div class="controls">
-        <button class="control-btn" onclick="zoomIn()" title="放大">+</button>
-        <button class="control-btn" onclick="zoomOut()" title="缩小">-</button>
-        <button class="control-btn" onclick="resetZoom()" title="重置">⟲</button>
-        <button class="control-btn" onclick="exportData()" title="导出数据">💾</button>
+        <button class="control-btn" id="zoomInBtn" title="放大" style="display: none;">+</button>
+        <button class="control-btn" id="zoomOutBtn" title="缩小" style="display: none;">-</button>
+        <button class="control-btn" id="resetZoomBtn" title="重置" style="display: none;">⟲</button>
+        <button class="control-btn" id="exportBtn" title="导出数据" style="display: none;">💾</button>
     </div>
 
     <!-- Modal -->
@@ -652,43 +685,83 @@
     </div>
 
     <script>
- let familyData = null;
-            let currentScale = 1;
+        // ==================== 全局变量 ====================
+        let familyData = null;
+        let currentScale = 1;
         let editingNodeId = null;
         let addingParentId = null;
-    // 使用 IIFE 包装异步代码
-    (async function() {
-        try {
-            const response = await fetch('./familyData.json');
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            familyData = await response.json();
-            console.log('数据加载成功:', familyData);
-            
-            // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            renderTree();
-            updateStats();
-            
-            // Form submission
-            document.getElementById('memberForm').addEventListener('submit', handleSubmit);
-            
-            // Close modal on overlay click
-            document.getElementById('modal').addEventListener('click', function(e) {
-                if (e.target === this) closeModal();
-            });
-        });
-            
-        } catch (error) {
-            console.error('加载失败:', error);
-            familyData = { family: { name: '加载失败', members: [] } };
-        }
-    })();
 
-        // Render Tree
+        // ==================== 数据加载函数 ====================
+        async function loadFamilyData() {
+            const loadingState = document.getElementById('loadingState');
+            const treeRoot = document.getElementById('treeRoot');
+            const controls = document.querySelectorAll('#zoomInBtn, #zoomOutBtn, #resetZoomBtn, #exportBtn');
+            
+            try {
+                // 模拟加载延迟（可选，让用户看到加载效果）
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const response = await fetch('./familyData.json');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                familyData = await response.json();
+                
+                // 验证数据结构
+                if (!familyData || !familyData.id) {
+                    throw new Error('JSON 文件格式不正确，缺少根节点');
+                }
+                
+                console.log('✅ 数据加载成功:', familyData);
+                
+                // 隐藏加载状态，显示树容器和控件
+                loadingState.style.display = 'none';
+                treeRoot.style.display = 'block';
+                controls.forEach(btn => btn.style.display = 'flex');
+                
+                // 渲染树形结构
+                renderTree();
+                updateStats();
+                
+            } catch (error) {
+                console.error('❌ 加载失败:', error);
+                
+                // 显示错误信息
+                loadingState.innerHTML = `
+                    <div class="error-message">
+                        <div style="font-size: 48px; margin-bottom: 16px;">😔</div>
+                        <p style="font-size: 18px; color: #d32f2f; margin-bottom: 12px;">数据加载失败</p>
+                        <p style="font-size: 14px; color: #666;">${error.message}</p>
+                        <p style="font-size: 12px; color: #999; margin-top: 20px;">
+                            请确保：<br>
+                            1. familyData.json 文件存在于同目录<br>
+                            2. 通过 HTTP 服务器访问（使用 Live Server）<br>
+                            3. JSON 文件格式正确
+                        </p>
+                        <button onclick="location.reload()" style="margin-top: 20px; padding: 8px 20px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">重新加载</button>
+                    </div>
+                `;
+                
+                // 设置默认空数据，避免后续操作报错
+                familyData = {
+                    id: 'root',
+                    name: '数据加载失败',
+                    gender: 'male',
+                    children: []
+                };
+            }
+        }
+
+        // ==================== 渲染函数 ====================
         function renderTree() {
             const root = document.getElementById('treeRoot');
+            if (!root) return;
             root.innerHTML = '';
-            root.appendChild(createNodeElement(familyData));
+            if (familyData) {
+                root.appendChild(createNodeElement(familyData));
+            }
         }
 
         function createNodeElement(node) {
@@ -696,7 +769,7 @@
             
             // Create node card
             const card = document.createElement('div');
-            card.className = `node-card ${node.gender}`;
+            card.className = `node-card ${node.gender || 'male'}`;
             card.onclick = (e) => {
                 if (!e.target.closest('.btn-icon')) {
                     openEditModal(node.id);
@@ -706,7 +779,7 @@
             // Avatar
             const avatar = document.createElement('img');
             avatar.className = 'node-avatar';
-            avatar.src = node.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${node.id}&gender=${node.gender}`;
+            avatar.src = node.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${node.id}&gender=${node.gender || 'male'}`;
             avatar.alt = node.name;
             avatar.onerror = function() {
                 this.src = `https://api.dicebear.com/7.x/initials/svg?seed=${node.name}`;
@@ -715,12 +788,12 @@
             // Name
             const name = document.createElement('div');
             name.className = 'node-name';
-            name.textContent = node.name;
+            name.textContent = node.name || '未知';
             
             // Info
             const info = document.createElement('div');
             info.className = 'node-info';
-            const genderText = node.gender === 'male' ? '男' : '女';
+            const genderText = node.gender === 'male' ? '男' : (node.gender === 'female' ? '女' : '未知');
             info.innerHTML = `${genderText} ${node.age ? node.age + '岁' : ''}<br>${node.bio || ''}`;
             
             // Actions
@@ -750,8 +823,9 @@
             return li;
         }
 
-        // Find node by ID
+        // ==================== 数据操作函数 ====================
         function findNode(id, node = familyData) {
+            if (!node) return null;
             if (node.id === id) return node;
             if (node.children) {
                 for (let child of node.children) {
@@ -762,24 +836,21 @@
             return null;
         }
 
-        // Find parent node
         function findParent(id, node = familyData) {
-            if (node.children) {
-                for (let child of node.children) {
-                    if (child.id === id) return node;
-                    const found = findParent(id, child);
-                    if (found) return found;
-                }
+            if (!node || !node.children) return null;
+            for (let child of node.children) {
+                if (child.id === id) return node;
+                const found = findParent(id, child);
+                if (found) return found;
             }
             return null;
         }
 
-        // Generate unique ID
         function generateId() {
             return 'node_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
 
-        // Modal Functions
+        // ==================== Modal 函数 ====================
         function openEditModal(nodeId) {
             const node = findNode(nodeId);
             if (!node) return;
@@ -789,7 +860,7 @@
             
             document.getElementById('modalTitle').textContent = '编辑成员';
             document.getElementById('memberId').value = node.id;
-            document.getElementById('nameInput').value = node.name;
+            document.getElementById('nameInput').value = node.name || '';
             document.getElementById('ageInput').value = node.age || '';
             document.getElementById('bioInput').value = node.bio || '';
             
@@ -847,7 +918,7 @@
             }
         }
 
-        // Avatar Handling
+        // ==================== Avatar 处理 ====================
         function handleAvatarChange(event) {
             const file = event.target.files[0];
             if (file) {
@@ -862,7 +933,7 @@
             }
         }
 
-        // Form Submission
+        // ==================== 表单提交 ====================
         function handleSubmit(e) {
             e.preventDefault();
             
@@ -880,19 +951,19 @@
             }
             
             if (editingNodeId) {
-                // Edit existing
+                // 编辑现有成员
                 const node = findNode(editingNodeId);
                 if (node) {
                     node.name = name;
                     node.gender = gender;
                     node.age = age ? parseInt(age) : null;
                     node.bio = bio;
-                    if (avatarSrc && !avatarSrc.startsWith('data:image/svg')) {
+                    if (avatarSrc && !avatarSrc.includes('dicebear')) {
                         node.avatar = avatarSrc;
                     }
                 }
             } else if (addingParentId) {
-                // Add new
+                // 添加新成员
                 const parent = findNode(addingParentId);
                 if (parent) {
                     if (!parent.children) parent.children = [];
@@ -902,7 +973,7 @@
                         gender: gender,
                         age: age ? parseInt(age) : null,
                         bio: bio,
-                        avatar: avatarSrc && !avatarSrc.startsWith('data:image/svg') ? avatarSrc : '',
+                        avatar: avatarSrc && !avatarSrc.includes('dicebear') ? avatarSrc : '',
                         children: []
                     });
                 }
@@ -913,7 +984,7 @@
             closeModal();
         }
 
-        // Delete Node
+        // ==================== 删除节点 ====================
         function deleteNode(nodeId) {
             if (nodeId === 'root') {
                 alert('不能删除根节点');
@@ -932,14 +1003,15 @@
             }
         }
 
-        // Update Statistics
+        // ==================== 统计更新 ====================
         function updateStats() {
             let total = 0, male = 0, female = 0, generations = 0;
             
             function traverse(node, depth) {
+                if (!node) return;
                 total++;
                 if (node.gender === 'male') male++;
-                else female++;
+                else if (node.gender === 'female') female++;
                 generations = Math.max(generations, depth);
                 
                 if (node.children) {
@@ -947,7 +1019,9 @@
                 }
             }
             
-            traverse(familyData, 1);
+            if (familyData) {
+                traverse(familyData, 1);
+            }
             
             document.getElementById('totalCount').textContent = total;
             document.getElementById('maleCount').textContent = male;
@@ -955,7 +1029,7 @@
             document.getElementById('generationCount').textContent = generations;
         }
 
-        // Zoom Controls
+        // ==================== 缩放控制 ====================
         function zoomIn() {
             currentScale = Math.min(currentScale + 0.1, 2);
             applyZoom();
@@ -972,27 +1046,65 @@
         }
 
         function applyZoom() {
-            document.getElementById('treeContainer').style.transform = `scale(${currentScale})`;
-            document.getElementById('treeContainer').style.transformOrigin = 'top center';
+            const container = document.getElementById('treeContainer');
+            if (container) {
+                container.style.transform = `scale(${currentScale})`;
+                container.style.transformOrigin = 'top center';
+            }
         }
 
-        // Export Data
+        // ==================== 导出数据 ====================
         function exportData() {
+            if (!familyData) {
+                alert('暂无数据可导出');
+                return;
+            }
             const dataStr = JSON.stringify(familyData, null, 2);
             const dataBlob = new Blob([dataStr], {type: 'application/json'});
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'family_tree.json';
+            link.download = 'family_tree_backup.json';
             link.click();
             URL.revokeObjectURL(url);
+            alert('数据已导出！');
         }
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeModal();
+        // ==================== 页面初始化（异步方式） ====================
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('📄 DOM 加载完成，开始初始化...');
+            
+            // 绑定表单事件
+            const form = document.getElementById('memberForm');
+            if (form) {
+                form.addEventListener('submit', handleSubmit);
             }
+            
+            // 绑定模态框关闭事件
+            const modal = document.getElementById('modal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) closeModal();
+                });
+            }
+            
+            // 绑定缩放按钮
+            document.getElementById('zoomInBtn')?.addEventListener('click', zoomIn);
+            document.getElementById('zoomOutBtn')?.addEventListener('click', zoomOut);
+            document.getElementById('resetZoomBtn')?.addEventListener('click', resetZoom);
+            document.getElementById('exportBtn')?.addEventListener('click', exportData);
+            
+            // 键盘快捷键
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+            
+            // 加载数据（异步）
+            await loadFamilyData();
+            
+            console.log('✅ 应用初始化完成');
         });
     </script>
 </body>
